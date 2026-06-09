@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdint-gcc.h>
+#include <stdio.h>
 #include <math.h>
 /* USER CODE END Includes */
 
@@ -81,8 +82,8 @@ volatile float ramp_up = 0.001f;
 
 volatile uint32_t adc_raw = 0;
 
-float freq_target = 35.0f;
-float freq_filtered = 35.0f;
+volatile float freq_target = 35.0f;
+volatile float freq_filtered = 35.0f;
 /* USER CODE END 0 */
 
 /**
@@ -102,7 +103,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  printf("Init\n");
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -141,17 +142,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  printf("Init\n");
+	  
+	  HAL_ADC_Start(&hadc1);   // 👈 CLAVE
 	  /* USER CODE BEGIN 3 */
 	  if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK)
 	  {
+		  HAL_ADC_PollForConversion(&hadc1, 1);
 		  adc_raw = HAL_ADC_GetValue(&hadc1);
+		  printf("%lu\r\n", adc_raw);
+		  HAL_Delay(100);
 		  
 		  freq_target = 5.0f + ((float)adc_raw / 4095.0f) * 55.0f;
 		  
-		  //freq_filtered = 0.8f * freq_filtered + 0.2f * freq_target;
-		  freq_filtered = freq_target;
-		  
+		  freq_filtered = 0.9f * freq_filtered + 0.1f * freq_target;
 		  freq = freq_filtered;
+
+		  m = 0.15f + 0.83f*(freq/60.0f);
+		  
+		  if (m > 0.98f)
+		      m = 0.98f;
 	  }
 	  /* USER CODE END 3 */
   }	  
@@ -223,7 +233,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
@@ -274,7 +284,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 0;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 16000;
+  htim1.Init.Period = 1600;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
